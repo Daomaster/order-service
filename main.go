@@ -5,15 +5,13 @@ import (
 	"order-service/api"
 	"order-service/config"
 	"order-service/models"
+	"order-service/services/distance"
 )
 
 func init()  {
 	config.InitConfig()
-
-	err := models.Init()
-	if err != nil {
-		logrus.Fatal(err)
-	}
+	distance.InitCalculator()
+	models.InitModel()
 }
 
 func main() {

@@ -1,30 +1,29 @@
 package models
 
 import (
-	"database/sql"
-	_ "github.com/go-sql-driver/mysql"
+	"github.com/jinzhu/gorm"
+	_ "github.com/jinzhu/gorm/dialects/mysql"
+	"github.com/sirupsen/logrus"
 	"order-service/config"
 )
 
-var client *Client
-
-type Client struct {
-	db *sql.DB
-}
+var db *gorm.DB
 
 // initialize the client with mysql connection
-func Init() error {
+func InitModel() {
 	cString := config.GetConfig().DbConfig.GetConnectionString()
 
-	db, err := sql.Open("mysql", cString)
+	var err error
+	db, err = gorm.Open("mysql", cString)
 	if err != nil {
-		return err
+		logrus.Fatal(err)
 	}
 
-	c := new(Client)
-	c.db = db
+	// migration on all the tables
+	migrate()
+}
 
-	client = c
-
-	return nil
+// initialize the tables based on the model if not exist
+func migrate() {
+	db.AutoMigrate(&Order{})
 }

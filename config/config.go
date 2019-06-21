@@ -7,8 +7,20 @@ import (
 
 var config *Configuration
 
+const ConnectionStringFormat = "%s:%s@tcp(%s:%d)/%s?charset=utf8&parseTime=True&loc=Local"
+
 type Configuration struct {
+	MapConfig *MapConfiguration
 	DbConfig *DbConfiguration
+}
+
+type MapConfiguration struct {
+	apiKey string
+}
+
+// return the map api key
+func (m MapConfiguration) GetMapApiKey() string {
+	return m.apiKey
 }
 
 type DbConfiguration struct {
@@ -21,7 +33,7 @@ type DbConfiguration struct {
 
 // return the whole connection string
 func (d DbConfiguration) GetConnectionString() string {
-	return fmt.Sprintf("%s:%s@tcp(%s:%d)/%s", d.username, d.password, d.hostname, d.port, d.schemaName)
+	return fmt.Sprintf(ConnectionStringFormat, d.username, d.password, d.hostname, d.port, d.schemaName)
 }
 
 // getter of the config var
@@ -37,7 +49,7 @@ func InitConfig() {
 	v.SetConfigType("json")
 
 	// default values
-	v.SetDefault("MYSQL_SCHEMA", "orders")
+	v.SetDefault("MYSQL_SCHEMA", "order-service")
 	v.SetDefault("MYSQL_PORT", 3306)
 
 	err := v.ReadInConfig()
@@ -47,6 +59,7 @@ func InitConfig() {
 		v.BindEnv("MYSQL_ROOT_PWD")
 		v.BindEnv("MYSQL_HOSTNAME")
 		v.BindEnv("MYSQL_USER")
+		v.BindEnv("MAP_API_KEY")
 	} else {
 		// overwrite if env is present
 		v.AutomaticEnv()
@@ -61,5 +74,9 @@ func InitConfig() {
 	dbConfig.password = v.GetString("MYSQL_ROOT_PWD")
 	dbConfig.schemaName = v.GetString("MYSQL_SCHEMA")
 
+	var mapConfig MapConfiguration
+	mapConfig.apiKey = v.GetString("MAP_API_KEY")
+
 	config.DbConfig = &dbConfig
+	config.MapConfig = &mapConfig
 }
