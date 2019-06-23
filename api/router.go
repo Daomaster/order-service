@@ -16,13 +16,13 @@ func InitRouter() *gin.Engine {
 	orderRoute.Use()
 	{
 		// get orders
-		orderRoute.GET("/", order.GetOrders)
+		orderRoute.GET("", order.GetOrders)
 
 		// update status of an order
 		orderRoute.PATCH("/:id", order.UpdateOrder)
 
 		// create a new order
-		orderRoute.POST("/", order.CreateOrder)
+		orderRoute.POST("", order.CreateOrder)
 	}
 
 	return r

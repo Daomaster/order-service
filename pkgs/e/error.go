@@ -1,6 +1,8 @@
 package e
 
-import "errors"
+import (
+	"errors"
+)
 
 type ResponseError struct {
 	Error string `json:"error"`

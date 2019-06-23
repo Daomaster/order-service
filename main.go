@@ -10,7 +10,7 @@ import (
 
 func init()  {
 	config.InitConfig()
-	distance.InitCalculator()
+	distance.InitGoogleMapCalculator()
 	models.InitModel()
 }
 

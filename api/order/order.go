@@ -11,12 +11,16 @@ import (
 	"strconv"
 )
 
+type TakeOrderResponse struct {
+	Status string `json:"status"`
+} 
+
 // handler for creating order
 func CreateOrder(c *gin.Context) {
 	var req r.CreateOrderRequest
 	if err := c.BindJSON(&req); err != nil {
 		logrus.Error(err)
-		c.JSON(http.StatusBadRequest, e.ErrOrderRequestInvalid)
+		c.JSON(http.StatusBadRequest, e.CreateErr(e.ErrOrderRequestInvalid))
 		return
 	}
 
@@ -58,19 +62,19 @@ func GetOrders(c *gin.Context) {
 func UpdateOrder(c *gin.Context) {
 	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, e.ErrOrderRequestInvalid)
+		c.JSON(http.StatusBadRequest, e.CreateErr(e.ErrOrderRequestInvalid))
 		return
 	}
 
 	var req r.TakeOrderRequest
-	if err := c.BindUri(&req); err != nil {
-		c.JSON(http.StatusBadRequest, e.ErrOrderRequestInvalid)
+	if err := c.BindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, e.CreateErr(e.ErrOrderRequestInvalid))
 		return
 	}
 
 	// got anything other than TAKEN
 	if req.Status != models.StatusTaken {
-		c.JSON(http.StatusBadRequest, e.ErrOrderRequestInvalid)
+		c.JSON(http.StatusBadRequest, e.CreateErr(e.ErrOrderRequestInvalid))
 		return
 	}
 
@@ -92,7 +96,8 @@ func UpdateOrder(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"status": models.StatusSuccess,
-	})
+	var res TakeOrderResponse
+	res.Status = models.StatusSuccess
+
+	c.JSON(http.StatusOK, res)
 }
