@@ -8,10 +8,19 @@ import (
 	"strings"
 )
 
-var calculator *Calculator
+var calc Calculator
 
-type Calculator struct {
+type Calculator interface {
+	Calculate(src []string, des []string) (int, error)
+}
+
+type calculator struct {
 	client *maps.Client
+}
+
+// getter for the calculator
+func GetCalculator() Calculator {
+	return calc
 }
 
 // initialize the google map client
@@ -23,12 +32,12 @@ func InitCalculator() {
 		logrus.Fatal(err)
 	}
 
-	calculator = new(Calculator)
-	calculator.client = c
+	var calc calculator
+	calc.client = c
 }
 
 // calculate the distance between
-func Calculate(src []string, des []string) (int, error) {
+func (c *calculator)Calculate(src []string, des []string) (int, error) {
 	srcStr := strings.Join(src, ",")
 	desStr := strings.Join(des, ",")
 
@@ -36,7 +45,7 @@ func Calculate(src []string, des []string) (int, error) {
 	req.Origins = append(req.Origins, srcStr)
 	req.Destinations = append(req.Destinations, desStr)
 
-	res, err := calculator.client.DistanceMatrix(context.Background(), req)
+	res, err := c.client.DistanceMatrix(context.Background(), req)
 	if err != nil {
 		return 0, err
 	}

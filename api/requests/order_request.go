@@ -11,5 +11,5 @@ type GetOrderRequest struct {
 }
 
 type TakeOrderRequest struct {
-	ID int `uri:"id"`
+	Status string `json:"status"`
 }
