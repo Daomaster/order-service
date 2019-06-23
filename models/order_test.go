@@ -14,16 +14,10 @@ import (
 
 var ErrBadDriver = errors.New("driver: bad connection")
 
-func SetupTests() {
-	mocket.Catcher.Register()
-	mocket.Catcher.Logging = true
-	db, _ = gorm.Open(mocket.DriverName, "connection_string")
-}
-
 func TestCreateOrder(t *testing.T) {
 	a := assert.New(t)
 
-	SetupTests()
+	InitMockModel()
 
 	var (
 		expectDistance = rand.Intn(100)
@@ -33,7 +27,8 @@ func TestCreateOrder(t *testing.T) {
 	distance.InitMockCalculator(expectDistance, nil)
 
 	// mock the query that create order
-	mocket.Catcher.Reset().NewMock().WithQuery(`INSERT  INTO "orders" ("distance","status") VALUES (?,?)`).WithID(expectedId)
+	mocket.Catcher.NewMock().WithQuery(`INSERT  INTO "orders" ("distance","status") VALUES (?,?)`).WithID(expectedId)
+	defer mocket.Catcher.Reset()
 
 	var (
 		src = []string{"1", "2"}
@@ -53,14 +48,15 @@ func TestCreateOrder(t *testing.T) {
 func TestCreateOrder_Query_Exception(t *testing.T) {
 	a := assert.New(t)
 
-	SetupTests()
+	InitMockModel()
 
 	// init the mock calculator
 	var expectDistance = 100
 	distance.InitMockCalculator(expectDistance, nil)
 
 	// mock the query that create order with exception
-	mocket.Catcher.Reset().NewMock().WithQuery(`INSERT  INTO "orders" ("distance","status") VALUES (?,?)`).WithExecException()
+	mocket.Catcher.NewMock().WithQuery(`INSERT  INTO "orders" ("distance","status") VALUES (?,?)`).WithExecException()
+	defer mocket.Catcher.Reset()
 
 	var (
 		src = []string{"1", "2"}
@@ -77,7 +73,7 @@ func TestCreateOrder_Query_Exception(t *testing.T) {
 func TestCreateOrder_Service_Exception(t *testing.T)  {
 	a := assert.New(t)
 
-	SetupTests()
+	InitMockModel()
 
 	// init the mock calculator with error
 	var expectedErr = errors.New("test for service exception")
@@ -97,7 +93,7 @@ func TestCreateOrder_Service_Exception(t *testing.T)  {
 func TestGetOrders(t *testing.T) {
 	a := assert.New(t)
 
-	SetupTests()
+	InitMockModel()
 
 	// set up expected result
 	order1 := Order{ID: 1, Status:StatusUnassigned, Distance:rand.Intn(5000)}
@@ -110,24 +106,26 @@ func TestGetOrders(t *testing.T) {
 	_ = json.Unmarshal(i, &expectMap)
 
 	// mock the query that query the orders
-	mocket.Catcher.Reset().NewMock().WithQuery(`SELECT * FROM "orders"   LIMIT 1 OFFSET 1`).WithReply(expectMap)
+	mocket.Catcher.NewMock().WithQuery(`SELECT * FROM "orders"   LIMIT 1 OFFSET 1`).WithReply(expectMap)
+	defer mocket.Catcher.Reset()
 
 	results, err := GetOrders(1, 1)
 
 	a.Nil(err, "order should be created without err")
 	a.NotNil(results, "result should not be nil")
 	a.Equal(len(orders), len(results), "length of the result should match expected")
-	a.Equal(order1, *results[0], "Order 1 should match exactly")
-	a.Equal(order2, *results[1], "Order 2 should match exactly")
+	a.Equal(order1, *results[0], "order 1 should match exactly")
+	a.Equal(order2, *results[1], "order 2 should match exactly")
 }
 
 func TestGetOrders_Query_Exception(t *testing.T) {
 	a := assert.New(t)
 
-	SetupTests()
+	InitMockModel()
 
 	// mock the query that query the orders with exception
-	mocket.Catcher.Reset().NewMock().WithQuery(`SELECT * FROM "orders"   LIMIT 1 OFFSET 1`).WithQueryException()
+	mocket.Catcher.NewMock().WithQuery(`SELECT * FROM "orders"   LIMIT 1 OFFSET 1`).WithQueryException()
+	defer mocket.Catcher.Reset()
 
 	os , err := GetOrders(1, 1)
 	a.NotNil(err, "error should occur based on the query")
@@ -138,7 +136,7 @@ func TestGetOrders_Query_Exception(t *testing.T) {
 func TestTakeOrder(t *testing.T) {
 	a := assert.New(t)
 
-	SetupTests()
+	InitMockModel()
 
 	// set up expected result
 	const orderId = 1
@@ -151,7 +149,8 @@ func TestTakeOrder(t *testing.T) {
 	_ = json.Unmarshal(i, &expectMap)
 
 	// mock the query that get the order by id
-	mocket.Catcher.Reset().NewMock().WithQuery(`SELECT * FROM "orders"  WHERE`).WithReply(expectMap)
+	mocket.Catcher.NewMock().WithQuery(`SELECT * FROM "orders"  WHERE`).WithReply(expectMap)
+	defer mocket.Catcher.Reset()
 
 	err := TakeOrder(orderId)
 	a.Nil(err, "error should be nil")
@@ -160,10 +159,11 @@ func TestTakeOrder(t *testing.T) {
 func TestTakeOrder_Query_Exception_On_Select(t *testing.T) {
 	a := assert.New(t)
 
-	SetupTests()
+	InitMockModel()
 
 	// mock the query that get the order by id with exception
-	mocket.Catcher.Reset().NewMock().WithQuery(`SELECT * FROM "orders"  WHERE`).WithQueryException()
+	mocket.Catcher.NewMock().WithQuery(`SELECT * FROM "orders"  WHERE`).WithQueryException()
+	defer mocket.Catcher.Reset()
 
 	err := TakeOrder(rand.Int63n(100))
 	a.NotNil(err, "error should be returned")
@@ -173,7 +173,7 @@ func TestTakeOrder_Query_Exception_On_Select(t *testing.T) {
 func TestTakeOrder_Query_Exception_On_Update(t *testing.T) {
 	a := assert.New(t)
 
-	SetupTests()
+	InitMockModel()
 
 	// set up expected result
 	const orderId = 1
@@ -186,7 +186,8 @@ func TestTakeOrder_Query_Exception_On_Update(t *testing.T) {
 	_ = json.Unmarshal(i, &expectMap)
 
 	// mock the query that get the order by id
-	mocket.Catcher.Reset().NewMock().WithQuery(`SELECT * FROM "orders"  WHERE`).WithReply(expectMap)
+	mocket.Catcher.NewMock().WithQuery(`SELECT * FROM "orders"  WHERE`).WithReply(expectMap)
+	defer mocket.Catcher.Reset()
 
 	// mock the query which update the order
 	mocket.Catcher.NewMock().WithQuery(`UPDATE "orders" SET "status" = ?  WHERE "orders"."id" = ?`).WithExecException()
@@ -199,7 +200,7 @@ func TestTakeOrder_Query_Exception_On_Update(t *testing.T) {
 func TestTakeOrder_Already_Taken(t *testing.T) {
 	a := assert.New(t)
 
-	SetupTests()
+	InitMockModel()
 
 	// set up expected result
 	const orderId = 1
@@ -212,7 +213,8 @@ func TestTakeOrder_Already_Taken(t *testing.T) {
 	_ = json.Unmarshal(i, &expectMap)
 
 	// mock the query that get the order by id
-	mocket.Catcher.Reset().NewMock().WithQuery(`SELECT * FROM "orders"  WHERE`).WithReply(expectMap)
+	mocket.Catcher.NewMock().WithQuery(`SELECT * FROM "orders"  WHERE`).WithReply(expectMap)
+	defer mocket.Catcher.Reset()
 
 	err := TakeOrder(orderId)
 	a.NotNil(err, "error should be returned")
@@ -222,10 +224,11 @@ func TestTakeOrder_Already_Taken(t *testing.T) {
 func TestTakeOrder_Not_Exist(t *testing.T) {
 	a := assert.New(t)
 
-	SetupTests()
+	InitMockModel()
 
 	// mock the query that get the order by id
-	mocket.Catcher.Reset().NewMock().WithQuery(`SELECT * FROM "orders"  WHERE`)
+	mocket.Catcher.NewMock().WithQuery(`SELECT * FROM "orders"  WHERE`)
+	defer mocket.Catcher.Reset()
 
 	err := TakeOrder(rand.Int63n(100))
 	a.NotNil(err, "error should be returned")
