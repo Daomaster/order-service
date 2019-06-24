@@ -22,7 +22,7 @@ var (
 	ErrInternalError       = errors.New("the request failed by internal error")
 )
 
-// function to create a error
+// function to create a response error
 func CreateErr(err error) *ResponseError {
 	res := &ResponseError{Error:err.Error()}
 	return res
