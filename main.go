@@ -19,7 +19,7 @@ func main() {
 	g := api.InitRouter()
 
 	// run on 8000 for the server
-	err := g.Run(":8000")
+	err := g.Run(":8080")
 	if err != nil {
 		logrus.Fatal(err)
 	}

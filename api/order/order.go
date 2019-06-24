@@ -24,6 +24,12 @@ func CreateOrder(c *gin.Context) {
 		return
 	}
 
+	// make sure the body is present
+	if req.Origin == nil || req.Destination == nil {
+		c.JSON(http.StatusBadRequest, e.CreateErr(e.ErrOrderRequestInvalid))
+		return
+	}
+
 	o, err := models.CreateOrder(req.Origin, req.Destination)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, e.CreateErr(e.ErrInternalError))
