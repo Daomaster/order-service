@@ -43,7 +43,8 @@ func createJson(i interface{}) (io.Reader, error) {
 	return bytes.NewBuffer(body), err
 }
 
-func TestCreateOrder(t *testing.T)  {
+// test success from create order
+func TestCreateOrder(t *testing.T) {
 	a := assert.New(t)
 
 	// init the mock database
@@ -66,7 +67,7 @@ func TestCreateOrder(t *testing.T)  {
 
 	// make request to recorder
 	w := httptest.NewRecorder()
-	req, _ :=http.NewRequest(http.MethodPost, "/orders", reqBody)
+	req, _ := http.NewRequest(http.MethodPost, "/orders", reqBody)
 	r.ServeHTTP(w, req)
 
 	// check response code
@@ -81,6 +82,44 @@ func TestCreateOrder(t *testing.T)  {
 	a.Equal(models.StatusUnassigned, orderResponse.Status, "server should create order with default UNASSIGNED")
 }
 
+// test for error response from create order with unknown distance
+func TestCreateOrder_Unknown_Distance(t *testing.T) {
+	a := assert.New(t)
+
+	// init the mock database
+	models.InitMockModel()
+
+	// init the mock calculator
+	distance.InitMockCalculator(0, e.ErrDistanceUnknown)
+
+	// get the router
+	r := InitRouter()
+
+	// create request body
+	var createOrder requests.CreateOrderRequest
+	createOrder.Origin = []string{"35.9984617", "-115.1432558"}
+	createOrder.Destination = []string{"36.0222811", "-115.0980736"}
+	reqBody, err := createJson(createOrder)
+
+	a.Nil(err, "should not have problem with create json")
+
+	// make request to recorder
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest(http.MethodPost, "/orders", reqBody)
+	r.ServeHTTP(w, req)
+
+	// check response code
+	a.Equal(http.StatusBadRequest, w.Code, "server should return back 400 Bad Request")
+
+	// parsing the error response
+	var errorResponse e.ResponseError
+	err = parseJson(w.Body, &errorResponse)
+	a.Nil(err, "should not error out upon parsing error")
+	a.NotNil(errorResponse, "server should have error response")
+	a.Equal(e.ErrDistanceUnknown.Error(), errorResponse.Error, "error response should match the error content")
+}
+
+// test for error response from create order with bad request
 func TestCreateOrder_Bad_Request(t *testing.T) {
 	a := assert.New(t)
 
@@ -96,7 +135,7 @@ func TestCreateOrder_Bad_Request(t *testing.T) {
 
 	// make request to recorder
 	w := httptest.NewRecorder()
-	req, _ :=http.NewRequest(http.MethodPost, "/orders", nil)
+	req, _ := http.NewRequest(http.MethodPost, "/orders", nil)
 	r.ServeHTTP(w, req)
 
 	// check response code
@@ -110,6 +149,7 @@ func TestCreateOrder_Bad_Request(t *testing.T) {
 	a.Equal(e.ErrOrderRequestInvalid.Error(), errorResponse.Error, "error response should match the error content")
 }
 
+// test for error response from create order with internal error
 func TestCreateOrder_Internal_Sever_Error(t *testing.T) {
 	a := assert.New(t)
 
@@ -135,7 +175,7 @@ func TestCreateOrder_Internal_Sever_Error(t *testing.T) {
 
 	// make request to recorder
 	w := httptest.NewRecorder()
-	req, _ :=http.NewRequest(http.MethodPost, "/orders", reqBody)
+	req, _ := http.NewRequest(http.MethodPost, "/orders", reqBody)
 	r.ServeHTTP(w, req)
 
 	// check response code
@@ -149,6 +189,7 @@ func TestCreateOrder_Internal_Sever_Error(t *testing.T) {
 	a.Equal(e.ErrInternalError.Error(), errorResponse.Error, "error response should match the error content")
 }
 
+// test success from get orders
 func TestGetOrders(t *testing.T) {
 	a := assert.New(t)
 
@@ -156,8 +197,8 @@ func TestGetOrders(t *testing.T) {
 	models.InitMockModel()
 
 	// set up expected result
-	order1 := models.Order{ID: 1, Status:models.StatusUnassigned, Distance:rand.Intn(5000)}
-	order2 := models.Order{ID: 2, Status:models.StatusTaken, Distance:rand.Intn(5000)}
+	order1 := models.Order{ID: 1, Status: models.StatusUnassigned, Distance: rand.Intn(5000)}
+	order2 := models.Order{ID: 2, Status: models.StatusTaken, Distance: rand.Intn(5000)}
 	orders := []models.Order{order1, order2}
 
 	// make the struct into map for the database mock
@@ -174,7 +215,7 @@ func TestGetOrders(t *testing.T) {
 
 	// make request to recorder
 	w := httptest.NewRecorder()
-	req, _ :=http.NewRequest(http.MethodGet, "/orders", nil)
+	req, _ := http.NewRequest(http.MethodGet, "/orders", nil)
 
 	// create the query string
 	q := req.URL.Query()
@@ -196,6 +237,7 @@ func TestGetOrders(t *testing.T) {
 	a.Equal(order2, ordersResponse[1], "order 2 should match exactly")
 }
 
+// test for error response from get orders with no query
 func TestGetOrders_No_Query(t *testing.T) {
 	a := assert.New(t)
 
@@ -207,7 +249,7 @@ func TestGetOrders_No_Query(t *testing.T) {
 
 	// make request to recorder
 	w := httptest.NewRecorder()
-	req, _ :=http.NewRequest(http.MethodGet, "/orders", nil)
+	req, _ := http.NewRequest(http.MethodGet, "/orders", nil)
 	r.ServeHTTP(w, req)
 
 	// it should return 200 since default value would 0, 0
@@ -222,6 +264,7 @@ func TestGetOrders_No_Query(t *testing.T) {
 	a.Equal(0, len(ordersResponse), "response should be an empty array")
 }
 
+// test for error response from get orders with invalid query type
 func TestGetOrders_Invalid_Query_Type(t *testing.T) {
 	a := assert.New(t)
 
@@ -233,7 +276,7 @@ func TestGetOrders_Invalid_Query_Type(t *testing.T) {
 
 	// make request to recorder
 	w := httptest.NewRecorder()
-	req, _ :=http.NewRequest(http.MethodGet, "/orders", nil)
+	req, _ := http.NewRequest(http.MethodGet, "/orders", nil)
 
 	// create the query string
 	q := req.URL.Query()
@@ -253,6 +296,7 @@ func TestGetOrders_Invalid_Query_Type(t *testing.T) {
 	a.Equal(e.ErrQueryStringInvalid.Error(), errorResponse.Error, "error response should match the error content")
 }
 
+// test for error response from get orders with no query value
 func TestGetOrders_Invalid_Query_Value(t *testing.T) {
 	a := assert.New(t)
 
@@ -264,7 +308,7 @@ func TestGetOrders_Invalid_Query_Value(t *testing.T) {
 
 	// make request to recorder
 	w := httptest.NewRecorder()
-	req, _ :=http.NewRequest(http.MethodGet, "/orders", nil)
+	req, _ := http.NewRequest(http.MethodGet, "/orders", nil)
 
 	// create the query string
 	q := req.URL.Query()
@@ -284,6 +328,7 @@ func TestGetOrders_Invalid_Query_Value(t *testing.T) {
 	a.Equal(e.ErrQueryStringInvalid.Error(), errorResponse.Error, "error response should match the error content")
 }
 
+// test for error response from get orders with internal error
 func TestGetOrders_Internal_Server_Error(t *testing.T) {
 	a := assert.New(t)
 
@@ -299,7 +344,7 @@ func TestGetOrders_Internal_Server_Error(t *testing.T) {
 
 	// make request to recorder
 	w := httptest.NewRecorder()
-	req, _ :=http.NewRequest(http.MethodGet, "/orders", nil)
+	req, _ := http.NewRequest(http.MethodGet, "/orders", nil)
 
 	// create the query string
 	q := req.URL.Query()
@@ -319,7 +364,8 @@ func TestGetOrders_Internal_Server_Error(t *testing.T) {
 	a.Equal(e.ErrInternalError.Error(), errorResponse.Error, "error response should match the error content")
 }
 
-func TestUpdateOrder(t *testing.T) {
+// test success from take order
+func TestTakeOrder(t *testing.T) {
 	a := assert.New(t)
 
 	// init the mock database
@@ -327,7 +373,7 @@ func TestUpdateOrder(t *testing.T) {
 
 	// set up expected result
 	const orderId = 1
-	order1 := models.Order{ID: orderId, Status:models.StatusUnassigned, Distance:rand.Intn(5000)}
+	order1 := models.Order{ID: orderId, Status: models.StatusUnassigned, Distance: rand.Intn(5000)}
 	orders := []models.Order{order1}
 
 	// get the router
@@ -351,7 +397,7 @@ func TestUpdateOrder(t *testing.T) {
 
 	// make request to recorder
 	w := httptest.NewRecorder()
-	req, _ :=http.NewRequest(http.MethodPatch, "/orders/1", reqBody)
+	req, _ := http.NewRequest(http.MethodPatch, "/orders/1", reqBody)
 	r.ServeHTTP(w, req)
 
 	// check response code
@@ -365,7 +411,8 @@ func TestUpdateOrder(t *testing.T) {
 	a.Equal(models.StatusSuccess, takeOrderResponse.Status, "response should contain SUCCESS")
 }
 
-func TestUpdateOrder_Already_Taken(t *testing.T) {
+// test for error response from take order with order already taken
+func TestTakeOrder_Already_Taken(t *testing.T) {
 	a := assert.New(t)
 
 	// init the mock database
@@ -373,7 +420,7 @@ func TestUpdateOrder_Already_Taken(t *testing.T) {
 
 	// set up expected result
 	const orderId = 1
-	order1 := models.Order{ID: orderId, Status:models.StatusTaken, Distance:rand.Intn(5000)}
+	order1 := models.Order{ID: orderId, Status: models.StatusTaken, Distance: rand.Intn(5000)}
 	orders := []models.Order{order1}
 
 	// get the router
@@ -397,7 +444,7 @@ func TestUpdateOrder_Already_Taken(t *testing.T) {
 
 	// make request to recorder
 	w := httptest.NewRecorder()
-	req, _ :=http.NewRequest(http.MethodPatch, "/orders/1", reqBody)
+	req, _ := http.NewRequest(http.MethodPatch, "/orders/1", reqBody)
 	r.ServeHTTP(w, req)
 
 	// check response code
@@ -411,7 +458,8 @@ func TestUpdateOrder_Already_Taken(t *testing.T) {
 	a.Equal(e.ErrOrderAlreadyTaken.Error(), errorResponse.Error, "error response should match the error content")
 }
 
-func TestUpdateOrder_Not_Found(t *testing.T) {
+// test for error response from take order with order not found
+func TestTakeOrder_Not_Found(t *testing.T) {
 	a := assert.New(t)
 
 	// init the mock database
@@ -419,7 +467,7 @@ func TestUpdateOrder_Not_Found(t *testing.T) {
 
 	// set up expected result
 	const orderId = 1
-	order1 := models.Order{ID: orderId, Status:models.StatusTaken, Distance:rand.Intn(5000)}
+	order1 := models.Order{ID: orderId, Status: models.StatusTaken, Distance: rand.Intn(5000)}
 	orders := []models.Order{order1}
 
 	// get the router
@@ -443,7 +491,7 @@ func TestUpdateOrder_Not_Found(t *testing.T) {
 
 	// make request to recorder
 	w := httptest.NewRecorder()
-	req, _ :=http.NewRequest(http.MethodPatch, "/orders/1", reqBody)
+	req, _ := http.NewRequest(http.MethodPatch, "/orders/1", reqBody)
 	r.ServeHTTP(w, req)
 
 	// check response code
@@ -457,7 +505,8 @@ func TestUpdateOrder_Not_Found(t *testing.T) {
 	a.Equal(e.ErrOrderNotExist.Error(), errorResponse.Error, "error response should match the error content")
 }
 
-func TestUpdateOrder_No_ID(t *testing.T) {
+// test for error response from take order with no id provided
+func TestTakeOrder_No_ID(t *testing.T) {
 	a := assert.New(t)
 
 	// init the mock database
@@ -468,14 +517,15 @@ func TestUpdateOrder_No_ID(t *testing.T) {
 
 	// make request to recorder
 	w := httptest.NewRecorder()
-	req, _ :=http.NewRequest(http.MethodPatch, "/orders", nil)
+	req, _ := http.NewRequest(http.MethodPatch, "/orders", nil)
 	r.ServeHTTP(w, req)
 
 	// check response code
 	a.Equal(http.StatusNotFound, w.Code, "server should not even match the route")
 }
 
-func TestUpdateOrder_Invalid_ID(t *testing.T) {
+// test for error response from take order with id is invalid form
+func TestTakeOrder_Invalid_ID(t *testing.T) {
 	a := assert.New(t)
 
 	// init the mock database
@@ -486,7 +536,7 @@ func TestUpdateOrder_Invalid_ID(t *testing.T) {
 
 	// make request to recorder
 	w := httptest.NewRecorder()
-	req, _ :=http.NewRequest(http.MethodPatch, "/orders/testtest", nil)
+	req, _ := http.NewRequest(http.MethodPatch, "/orders/testtest", nil)
 	r.ServeHTTP(w, req)
 
 	// check response code
@@ -500,7 +550,8 @@ func TestUpdateOrder_Invalid_ID(t *testing.T) {
 	a.Equal(e.ErrOrderRequestInvalid.Error(), errorResponse.Error, "error response should match the error content")
 }
 
-func TestUpdateOrder_Invalid_Request(t *testing.T) {
+// test for error response from take order with invalid request body
+func TestTakeOrder_Invalid_Request(t *testing.T) {
 	a := assert.New(t)
 
 	// init the mock database
@@ -518,7 +569,7 @@ func TestUpdateOrder_Invalid_Request(t *testing.T) {
 
 	// make request to recorder
 	w := httptest.NewRecorder()
-	req, _ :=http.NewRequest(http.MethodPatch, "/orders/1234", reqBody)
+	req, _ := http.NewRequest(http.MethodPatch, "/orders/1234", reqBody)
 	r.ServeHTTP(w, req)
 
 	// check response code
@@ -532,7 +583,8 @@ func TestUpdateOrder_Invalid_Request(t *testing.T) {
 	a.Equal(e.ErrOrderRequestInvalid.Error(), errorResponse.Error, "error response should match the error content")
 }
 
-func TestUpdateOrder_Internal_Server_Error(t *testing.T) {
+// test for error response from take order with internal server error
+func TestTakeOrder_Internal_Server_Error(t *testing.T) {
 	a := assert.New(t)
 
 	// init the mock database
@@ -540,7 +592,7 @@ func TestUpdateOrder_Internal_Server_Error(t *testing.T) {
 
 	// set up expected result
 	const orderId = 1
-	order1 := models.Order{ID: orderId, Status:models.StatusTaken, Distance:rand.Intn(5000)}
+	order1 := models.Order{ID: orderId, Status: models.StatusTaken, Distance: rand.Intn(5000)}
 	orders := []models.Order{order1}
 
 	// get the router
@@ -564,7 +616,7 @@ func TestUpdateOrder_Internal_Server_Error(t *testing.T) {
 
 	// make request to recorder
 	w := httptest.NewRecorder()
-	req, _ :=http.NewRequest(http.MethodPatch, "/orders/1", reqBody)
+	req, _ := http.NewRequest(http.MethodPatch, "/orders/1", reqBody)
 	r.ServeHTTP(w, req)
 
 	// check response code

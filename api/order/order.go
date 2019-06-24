@@ -13,13 +13,12 @@ import (
 
 type TakeOrderResponse struct {
 	Status string `json:"status"`
-} 
+}
 
 // handler for creating order
 func CreateOrder(c *gin.Context) {
 	var req r.CreateOrderRequest
 	if err := c.BindJSON(&req); err != nil {
-		logrus.Error(err)
 		c.JSON(http.StatusBadRequest, e.CreateErr(e.ErrOrderRequestInvalid))
 		return
 	}
@@ -32,6 +31,14 @@ func CreateOrder(c *gin.Context) {
 
 	o, err := models.CreateOrder(req.Origin, req.Destination)
 	if err != nil {
+		// special case when google map does not know the distance
+		if err == e.ErrDistanceUnknown {
+			c.JSON(http.StatusBadRequest, e.CreateErr(e.ErrDistanceUnknown))
+			return
+		}
+
+		// other exceptions
+		logrus.Error(err)
 		c.JSON(http.StatusInternalServerError, e.CreateErr(e.ErrInternalError))
 		return
 	}
@@ -43,7 +50,6 @@ func CreateOrder(c *gin.Context) {
 func GetOrders(c *gin.Context) {
 	var req r.GetOrderRequest
 	if err := c.BindQuery(&req); err != nil {
-		logrus.Error(err)
 		c.JSON(http.StatusBadRequest, e.CreateErr(e.ErrQueryStringInvalid))
 		return
 	}
@@ -65,7 +71,8 @@ func GetOrders(c *gin.Context) {
 }
 
 // handler for update an existing order
-func UpdateOrder(c *gin.Context) {
+func TakeOrder(c *gin.Context) {
+	// try to parse the id to int64
 	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, e.CreateErr(e.ErrOrderRequestInvalid))
@@ -97,6 +104,7 @@ func UpdateOrder(c *gin.Context) {
 			return
 		}
 
+		// other exceptions
 		logrus.Error(err)
 		c.JSON(http.StatusInternalServerError, e.CreateErr(e.ErrInternalError))
 		return

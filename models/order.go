@@ -64,7 +64,7 @@ func TakeOrder(id int64) error {
 func GetOrders(page int, limit int) ([]*Order, error) {
 	var orders []*Order
 
-	err := db.Offset(page*limit).Limit(limit).Find(&orders).Error
+	err := db.Offset(page * limit).Limit(limit).Find(&orders).Error
 	if err != nil && err != gorm.ErrRecordNotFound {
 		return nil, err
 	}

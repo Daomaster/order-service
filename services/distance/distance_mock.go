@@ -2,11 +2,11 @@ package distance
 
 type mockCalculator struct {
 	distance int
-	err *error
+	err      *error
 }
 
 // mock the google distance calculator
-func (m *mockCalculator)Calculate(src []string, des []string) (int, error) {
+func (m *mockCalculator) Calculate(src []string, des []string) (int, error) {
 	if m.err == nil {
 		return m.distance, nil
 	}
@@ -26,4 +26,3 @@ func InitMockCalculator(d int, err error) {
 
 	calc = &mock
 }
-

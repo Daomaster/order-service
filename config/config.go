@@ -11,7 +11,7 @@ const ConnectionStringFormat = "%s:%s@tcp(%s:%d)/%s?charset=utf8&parseTime=True&
 
 type Configuration struct {
 	MapConfig *MapConfiguration
-	DbConfig *DbConfiguration
+	DbConfig  *DbConfiguration
 }
 
 type MapConfiguration struct {

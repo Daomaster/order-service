@@ -8,8 +8,6 @@ import (
 // function for initialize the routes for gin
 func InitRouter() *gin.Engine {
 	r := gin.New()
-	r.Use(gin.Logger())
-	r.Use(gin.Recovery())
 
 	orderRoute := r.Group(`/orders`)
 
@@ -19,7 +17,7 @@ func InitRouter() *gin.Engine {
 		orderRoute.GET("", order.GetOrders)
 
 		// update status of an order
-		orderRoute.PATCH("/:id", order.UpdateOrder)
+		orderRoute.PATCH("/:id", order.TakeOrder)
 
 		// create a new order
 		orderRoute.POST("", order.CreateOrder)
